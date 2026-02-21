@@ -56,6 +56,7 @@ export default function PostAdScreen() {
   // Cities - برای انتخاب شهر
   const [cities, setCities] = useState<City[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('');
 
   useEffect(() => {
     // ابتدا احراز هویت را چک کن؛ اگر لاگین نیست، به صفحه لاگین با redirect برگرد
@@ -83,6 +84,14 @@ export default function PostAdScreen() {
     loadCities();
   }, []);
 
+  useEffect(() => {
+    if (formData.category_id) {
+      loadCategoryName(formData.category_id);
+    } else {
+      setSelectedCategoryName('');
+    }
+  }, [formData.category_id]);
+
   const loadCategories = async () => {
     try {
       const response = await getCategories(null, true);
@@ -106,6 +115,57 @@ export default function PostAdScreen() {
       console.error('Error loading cities:', error);
     } finally {
       setLoadingCities(false);
+    }
+  };
+
+  const loadCategoryName = async (categoryId: number) => {
+    try {
+      const findCategoryInState = (cats: Category[], id: number): Category | null => {
+        for (const cat of cats) {
+          if (cat.id === id) return cat;
+          if (cat.children?.length) {
+            const found = findCategoryInState(cat.children, id);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      const categoryInState = findCategoryInState(categories, categoryId);
+      if (categoryInState) {
+        setSelectedCategoryName(categoryInState.name);
+        return;
+      }
+      try {
+        const categoryResponse = await getCategoryById(categoryId);
+        if (categoryResponse.success && categoryResponse.data) {
+          setSelectedCategoryName(categoryResponse.data.name);
+          return;
+        }
+      } catch {
+        // fallback to getCategories
+      }
+      const response = await getCategories(null, true);
+      if (response.success && response.data) {
+        const findCategory = (cats: Category[], id: number): Category | null => {
+          for (const cat of cats) {
+            if (cat.id === id) return cat;
+            if (cat.children?.length) {
+              const found = findCategory(cat.children, id);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        const category = findCategory(response.data, categoryId);
+        if (category) {
+          setSelectedCategoryName(category.name);
+          setCategories(response.data);
+        } else {
+          setSelectedCategoryName('نامشخص');
+        }
+      }
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') setSelectedCategoryName('نامشخص');
     }
   };
 
@@ -324,91 +384,6 @@ export default function PostAdScreen() {
       Alert.alert('خطا', errorMessage);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('');
-
-  useEffect(() => {
-    if (formData.category_id) {
-      loadCategoryName(formData.category_id);
-    } else {
-      setSelectedCategoryName('');
-    }
-  }, [formData.category_id]);
-
-  const loadCategoryName = async (categoryId: number) => {
-    try {
-      console.log('🔍 Loading category name for ID:', categoryId);
-      
-      // ابتدا از categories state موجود جستجو کن
-      const findCategoryInState = (cats: Category[], id: number): Category | null => {
-        for (const cat of cats) {
-          if (cat.id === id) {
-            console.log('✅ Found category in state:', cat.name);
-            return cat;
-          }
-          if (cat.children && cat.children.length > 0) {
-            const found = findCategoryInState(cat.children, id);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-      
-      const categoryInState = findCategoryInState(categories, categoryId);
-      if (categoryInState) {
-        setSelectedCategoryName(categoryInState.name);
-        return;
-      }
-      
-      // اگر در state پیدا نشد، از API دریافت کن
-      console.log('📡 Category not found in state, fetching from API...');
-      
-      // ابتدا سعی کن از getCategoryById استفاده کنی (سریع‌تر)
-      try {
-        const categoryResponse = await getCategoryById(categoryId);
-        if (categoryResponse.success && categoryResponse.data) {
-          console.log('✅ Found category by ID:', categoryResponse.data.name);
-          setSelectedCategoryName(categoryResponse.data.name);
-          return;
-        }
-      } catch (error) {
-        console.log('⚠️ getCategoryById failed, trying getCategories...', error);
-      }
-      
-      // اگر getCategoryById کار نکرد، از getCategories استفاده کن
-      const response = await getCategories(null, true);
-      if (response.success && response.data) {
-        const findCategory = (cats: Category[], id: number): Category | null => {
-          for (const cat of cats) {
-            if (cat.id === id) {
-              console.log('✅ Found category in API:', cat.name);
-              return cat;
-            }
-            if (cat.children && cat.children.length > 0) {
-              const found = findCategory(cat.children, id);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        const category = findCategory(response.data, categoryId);
-        if (category) {
-          setSelectedCategoryName(category.name);
-          // همچنین categories state را هم به‌روزرسانی کن
-          setCategories(response.data);
-        } else {
-          console.warn('⚠️ Category not found:', categoryId);
-          setSelectedCategoryName('نامشخص');
-        }
-      }
-    } catch (error: any) {
-      console.error('Error loading category name:', error);
-      // اگر خطای AbortError بود، فقط log کن و alert نده
-      if (error.name !== 'AbortError') {
-        setSelectedCategoryName('نامشخص');
-      }
     }
   };
 

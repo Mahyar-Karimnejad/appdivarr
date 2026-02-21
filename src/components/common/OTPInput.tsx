@@ -91,7 +91,6 @@ export function OTPInput({ length = 5, onComplete, onChange, disabled = false }:
             styles.input,
             code && styles.inputFilled,
             disabled && styles.inputDisabled,
-            { fontSize: 16, fontFamily: 'Vazir-FD' }
           ]}
           value={code}
           onChangeText={(text) => handleChange(text, index)}
@@ -118,15 +117,19 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   input: {
-    width: 35, // مطابق Figma
-    height: 35, // مطابق Figma
+    width: 44,
+    height: 44,
     borderWidth: 0.5,
-    borderColor: 'rgba(231, 0, 43, 0.5)', // مطابق Figma
-    borderRadius: 12, // مطابق Figma
+    borderColor: 'rgba(231, 0, 43, 0.5)',
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: 'Vazir-FD',
     color: '#333333',
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   inputFilled: {
     borderColor: '#E7002B', // رنگ قرمز وقتی پر میشه
